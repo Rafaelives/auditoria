@@ -1,0 +1,39 @@
+import csv
+import os
+from docx import Document
+import re
+
+pasta = '/Users/rafaelives/Desktop/app/DemCel/agosto'
+ids_procurados = ('24261', '24227', '24830', ... )  # Continue com o restante dos IDs
+
+resultados = {id: {'contagem': 0, 'documentos': []} for id in ids_procurados}
+
+def extrair_texto_tabela(tabela):
+    texto = ''
+    for linha in tabela.rows:
+        for celula in linha.cells:
+            texto += celula.text + ' '
+    return texto
+
+for arquivo in os.listdir(pasta):
+    if arquivo.endswith('.docx'):
+        caminho_completo = os.path.join(pasta, arquivo)
+        doc = Document(caminho_completo)
+        conteudo = '\n'.join([paragrafo.text for paragrafo in doc.paragraphs])
+        conteudo += '\n'.join([extrair_texto_tabela(tabela) for tabela in doc.tables])
+
+        for id in ids_procurados:
+            padrao = rf"{id}"
+            qtd = len(re.findall(padrao, conteudo))
+            resultados[id]['contagem'] += qtd
+            if qtd > 0:
+                resultados[id]['documentos'].append(arquivo)
+
+nome_arquivo_csv = 'resultados_ids.csv'
+with open(nome_arquivo_csv, 'w', newline='', encoding='utf-8') as arquivo_csv:
+    escritor_csv = csv.writer(arquivo_csv)
+    escritor_csv.writerow(['ID', 'Contagem Total', 'Documentos Encontrados'])
+    for id, dados in resultados.items():
+        escritor_csv.writerow([id, dados['contagem'], ', '.join(dados['documentos'])])
+
+print(f"Resultados exportados para {nome_arquivo_csv}")
